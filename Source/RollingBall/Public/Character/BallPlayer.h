@@ -11,6 +11,7 @@
 class UStaticMeshComponent;
 class USpringArmComponent;
 class UCameraComponent;
+class UArrowComponent;
 class UInputMappingContext;
 class UInputAction;
 
@@ -64,4 +65,18 @@ private:
 	/** Control Input Action */
 	UPROPERTY(EditAnywhere, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* ControlAction;
+
+	/** 進行方向を表示するArrowComponent */
+	UPROPERTY(VisibleAnywhere, Category = Control, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UArrowComponent> Arrow;
+
+/**ここからカメラの制御に関する実装**/
+protected:
+	/** 視点を操作する */
+	void Look(const FInputActionValue& Value);
+
+private:
+	/** Look Input Action */
+	UPROPERTY(EditAnywhere, Category = Input, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputAction> LookAction;
 };

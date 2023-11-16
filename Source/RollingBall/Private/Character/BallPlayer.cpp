@@ -8,6 +8,8 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputMappingContext.h"
 #include "InputActionValue.h"
+#include "Kismet/GameplayStatics.h"
+#include "Components/ArrowComponent.h"
 
 // Sets default values
 ABallPlayer::ABallPlayer()
@@ -35,17 +37,12 @@ ABallPlayer::ABallPlayer()
 	// SpringArmを追加する
 	this->SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArmComponent"));
 	this->SpringArm->SetupAttachment(this->RootComponent);
-	
-	// 角度を変更する FRotator(Pitch(Y), Yaw(Z), Roll(X))
-	this->SpringArm->SetRelativeRotation(FRotator(-30.0f, 0.0f, 0.0f));
 
 	// Spring Armの長さを調整する
 	this->SpringArm->TargetArmLength = 450.0f;
 
-	// SpringArmからの角度を継承しない
-	this->SpringArm->bInheritPitch = false;
-	this->SpringArm->bInheritYaw = false;
-	this->SpringArm->bInheritRoll = false;
+	// PawnのControllerRotationを使用する
+	SpringArm->bUsePawnControlRotation = true;
 
 	// CameraのLagを有効にする
 	this->SpringArm->bEnableCameraLag = true;
@@ -56,11 +53,23 @@ ABallPlayer::ABallPlayer()
 
 	this->Camera->PostProcessSettings.MotionBlurAmount = 0.0f;
 
+	// Arrowを追加する
+	this->Arrow = CreateDefaultSubobject<UArrowComponent>(TEXT("ArrowComponent"));
+	this->Arrow->SetupAttachment(Camera);
+
+	// Sphereの頭上に移動するようにLocationを設定する
+	this->Arrow->SetRelativeLocation(FVector(400.0f, 0.0f, 130.0f));
+	// Arrowを表示されるようにする
+	this->Arrow->bHiddenInGame = false;
+
 	// Input Mapping Context「IM_Controls」を読み込む
 	this->DefaultMappingContext = LoadObject<UInputMappingContext>(nullptr, TEXT("/Game/RollingBall/Input/IM_Controls"));
 
 	// Input Action「IA_Control」を読み込む
 	this->ControlAction = LoadObject<UInputAction>(nullptr, TEXT("/Game/RollingBall/Input/Action/IA_Control"));
+
+	// Input Action「IA_Look」を読み込む
+	this->LookAction = LoadObject<UInputAction>(nullptr, TEXT("/Game/RollingBall/Input/Action/IA_Look"));
 }
 
 // Called when the game starts or when spawned
@@ -87,6 +96,9 @@ void ABallPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 		// ControlBallとIA_ControlのTriggeredをBindする
 		EnhancedInputComponent->BindAction(this->ControlAction, ETriggerEvent::Triggered, this, &ABallPlayer::ControlBall);
+
+		// LookとIA_LookのTriggeredをBindする
+		EnhancedInputComponent->BindAction(this->LookAction, ETriggerEvent::Triggered, this, &ABallPlayer::Look);
 	}
 }
 
@@ -97,4 +109,29 @@ void ABallPlayer::ControlBall(const FInputActionValue & Value)
 	FVector ForceVector = FVector(V.Y, V.X, 0.0f) * this->Speed;
 
 	this->Sphere->AddForce(ForceVector, NAME_None, true);
+
+	// Arrowの進行方向のVectorを計算する
+	FVector ArrowForceVector = this->Arrow->GetComponentToWorld().TransformVectorNoScale(ForceVector);
+}
+
+void ABallPlayer::Look(const FInputActionValue& Value)
+{
+	// inputのValueはVector2Dに変換できる
+	FVector2D v = Value.Get<FVector2D>();
+
+	if (Controller != nullptr)
+	{
+		// add yaw and pitch input to controller
+		this->AddControllerYawInput(v.X);
+		this->AddControllerPitchInput(v.Y);
+
+		// Pawnが持っているControlの角度を取得する
+		FRotator controlRotate = GetControlRotation();
+
+		// controllerのPitchの角度を制限する
+		double LimitPitchAngle = FMath::ClampAngle(controlRotate.Pitch, -40.0f, -10.0f);
+
+		// PlayerControllerの角度を設定する
+		UGameplayStatics::GetPlayerController(this, 0)->SetControlRotation(FRotator(controlRotate.Pitch, controlRotate.Yaw, 0.0f));
+	}
 }

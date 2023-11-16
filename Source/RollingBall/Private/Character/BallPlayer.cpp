@@ -4,6 +4,10 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Character/BallPlayer.h"
+#include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
+#include "InputMappingContext.h"
+#include "InputActionValue.h"
 
 // Sets default values
 ABallPlayer::ABallPlayer()
@@ -47,8 +51,16 @@ ABallPlayer::ABallPlayer()
 	this->SpringArm->bEnableCameraLag = true;
 	
 	// Cameraを追加する
-	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
-	Camera->SetupAttachment(SpringArm);
+	this->Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
+	this->Camera->SetupAttachment(SpringArm);
+
+	this->Camera->PostProcessSettings.MotionBlurAmount = 0.0f;
+
+	// Input Mapping Context「IM_Controls」を読み込む
+	this->DefaultMappingContext = LoadObject<UInputMappingContext>(nullptr, TEXT("/Game/RollingBall/Input/IM_Controls"));
+
+	// Input Action「IA_Control」を読み込む
+	this->ControlAction = LoadObject<UInputAction>(nullptr, TEXT("/Game/RollingBall/Input/Action/IA_Control"));
 }
 
 // Called when the game starts or when spawned
@@ -56,13 +68,13 @@ void ABallPlayer::BeginPlay()
 {
 	Super::BeginPlay();
 	
-}
-
-// Called every frame
-void ABallPlayer::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
+	if (const APlayerController* PlayerController = Cast<APlayerController>(this->Controller))
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+		{
+			Subsystem->AddMappingContext(DefaultMappingContext, 0);
+		}
+	}
 }
 
 // Called to bind functionality to input
@@ -70,5 +82,19 @@ void ABallPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+	// Set up action bindings
+	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent)) {
+
+		// ControlBallとIA_ControlのTriggeredをBindする
+		EnhancedInputComponent->BindAction(this->ControlAction, ETriggerEvent::Triggered, this, &ABallPlayer::ControlBall);
+	}
 }
 
+void ABallPlayer::ControlBall(const FInputActionValue & Value)
+{
+	const FVector2D V = Value.Get<FVector2D>();
+
+	FVector ForceVector = FVector(V.Y, V.X, 0.0f) * this->Speed;
+
+	this->Sphere->AddForce(ForceVector, NAME_None, true);
+}

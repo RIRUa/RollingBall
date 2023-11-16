@@ -4,12 +4,15 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
+#include "InputActionValue.h"
 #include "BallPlayer.generated.h"
 
 // Classを前方宣言(includeしないために代替初期化宣言をする)
 class UStaticMeshComponent;
 class USpringArmComponent;
 class UCameraComponent;
+class UInputMappingContext;
+class UInputAction;
 
 UCLASS()
 class ROLLINGBALL_API ABallPlayer : public APawn
@@ -37,11 +40,28 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
+public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+/**ここから移動に関する実装**/
+private:
+	// 速度
+	float Speed = 300.0f;
+
+	// 体力
+	float Health = 100.0f;
+
+protected:
+	/** BallをControlする */
+	void ControlBall(const FInputActionValue& Value);
+
+private:
+	/** MappingContext */
+	UPROPERTY(EditAnywhere, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputMappingContext* DefaultMappingContext;
+
+	/** Control Input Action */
+	UPROPERTY(EditAnywhere, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputAction* ControlAction;
 };

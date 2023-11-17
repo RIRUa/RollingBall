@@ -79,6 +79,8 @@ ABallPlayer::ABallPlayer()
 
 	// Input Action「IA_Jump」を読み込む
 	this->JumpAction = LoadObject<UInputAction>(nullptr, TEXT("/Game/RollingBall/Input/Action/IA_Jump"));
+	// Input Action「IA_Boost」を読み込む
+	this->BoostAction = LoadObject<UInputAction>(nullptr, TEXT("/Game/RollingBall/Input/Action/IA_Boost"));
 }
 
 // Called when the game starts or when spawned
@@ -111,6 +113,9 @@ void ABallPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 		// JumpとIA_JumpのTriggeredをBindする
 		EnhancedInputComponent->BindAction(this->JumpAction, ETriggerEvent::Triggered, this, &ABallPlayer::Jump);
+
+		// BoostとIA_BoostのTriggeredをBindする
+		EnhancedInputComponent->BindAction(this->BoostAction, ETriggerEvent::Triggered, this, &ABallPlayer::Boost);
 	}
 }
 
@@ -186,4 +191,20 @@ void ABallPlayer::NotifyHit(class UPrimitiveComponent* MyComp, class AActor* Oth
 	this->CanJumpingJump = true;
 	this->CanJump = true;
 	this->HasReleasedSpaceBarForJump = false;
+}
+
+void ABallPlayer::Boost(const FInputActionValue& Value)
+{
+	// inputのValueはboolに変換できる
+	if (const bool V = Value.Get<bool>())
+	{
+		// Arrowが向いている前方方向のVector情報を取得する
+		FVector ForwardVector = Arrow->GetForwardVector().GetSafeNormal(0.0001f);
+
+		// Torqueとして与えるVectorを作成する
+		FVector TorqueVector = FVector(ForwardVector.Y * Torque * -1.0f, ForwardVector.X * Torque, 0.0f);
+
+		// Torqueを与えて加速する
+		Sphere->AddTorqueInRadians(TorqueVector, TEXT("None"), true);
+	}
 }

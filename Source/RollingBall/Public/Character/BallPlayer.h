@@ -105,4 +105,18 @@ private:
 	/** Jump Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* JumpAction;
+
+/**ここから加速に関する実装**/
+private:
+	// 加速する早さ
+	float Torque = 500000000.0f;
+
+protected:
+	// 加速する
+	void Boost(const FInputActionValue& Value);
+
+private:
+	/** Boost Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputAction* BoostAction;
 };

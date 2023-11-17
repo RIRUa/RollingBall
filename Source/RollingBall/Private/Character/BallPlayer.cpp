@@ -34,6 +34,12 @@ ABallPlayer::ABallPlayer()
 	// Simulate Physicsを有効にする
 	this->Sphere->SetSimulatePhysics(true);
 
+	// CollisionPresetを「PhysicsActor」に変更する
+	this->Sphere->SetCollisionProfileName(TEXT("PhysicsActor"));
+
+	// Hit Eventを有効にする
+	this->Sphere->BodyInstance.bNotifyRigidBodyCollision = true;
+
 	// SpringArmを追加する
 	this->SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArmComponent"));
 	this->SpringArm->SetupAttachment(this->RootComponent);
@@ -70,6 +76,9 @@ ABallPlayer::ABallPlayer()
 
 	// Input Action「IA_Look」を読み込む
 	this->LookAction = LoadObject<UInputAction>(nullptr, TEXT("/Game/RollingBall/Input/Action/IA_Look"));
+
+	// Input Action「IA_Jump」を読み込む
+	this->JumpAction = LoadObject<UInputAction>(nullptr, TEXT("/Game/RollingBall/Input/Action/IA_Jump"));
 }
 
 // Called when the game starts or when spawned
@@ -99,6 +108,9 @@ void ABallPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 		// LookとIA_LookのTriggeredをBindする
 		EnhancedInputComponent->BindAction(this->LookAction, ETriggerEvent::Triggered, this, &ABallPlayer::Look);
+
+		// JumpとIA_JumpのTriggeredをBindする
+		EnhancedInputComponent->BindAction(this->JumpAction, ETriggerEvent::Triggered, this, &ABallPlayer::Jump);
 	}
 }
 
@@ -134,4 +146,20 @@ void ABallPlayer::Look(const FInputActionValue& Value)
 		// PlayerControllerの角度を設定する
 		UGameplayStatics::GetPlayerController(this, 0)->SetControlRotation(FRotator(controlRotate.Pitch, controlRotate.Yaw, 0.0f));
 	}
+}
+
+void ABallPlayer::Jump(const FInputActionValue & Value)
+{
+	// inputのValueはboolに変換できる
+	if (const bool V = Value.Get<bool>() && this->CanJump)
+	{
+		this->Sphere->AddImpulse(FVector(0.0f,0.0f,this->JumpImpulse), TEXT("None"), true);
+		CanJump = false;
+	}
+}
+
+void ABallPlayer::NotifyHit(class UPrimitiveComponent* MyComp, class AActor* Other, class UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit)
+{
+	Super::NotifyHit(MyComp, Other, OtherComp, bSelfMoved, HitLocation, HitNormal, NormalImpulse, Hit);	
+	this->CanJump = true;
 }

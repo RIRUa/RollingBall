@@ -79,4 +79,24 @@ private:
 	/** Look Input Action */
 	UPROPERTY(EditAnywhere, Category = Input, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UInputAction> LookAction;
+
+/**ここからジャンプに関する実装**/
+private:
+	// ジャンプに加える力
+	float JumpImpulse = 500.0f;
+
+	// ジャンプができるか判定するフラグ
+	bool CanJump = false;
+
+protected:
+	// ジャンプする
+	void Jump(const FInputActionValue& Value);
+
+	// Hit EventをBindingする関数
+	virtual void NotifyHit(UPrimitiveComponent * MyComp, AActor * Other, UPrimitiveComponent * OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult & Hit) override;
+
+private:
+	/** Jump Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputAction* JumpAction;
 };

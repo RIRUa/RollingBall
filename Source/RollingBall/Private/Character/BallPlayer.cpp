@@ -151,15 +151,39 @@ void ABallPlayer::Look(const FInputActionValue& Value)
 void ABallPlayer::Jump(const FInputActionValue & Value)
 {
 	// inputのValueはboolに変換できる
-	if (const bool V = Value.Get<bool>() && this->CanJump)
+	const bool V = Value.Get<bool>();
+	if (V)
 	{
-		this->Sphere->AddImpulse(FVector(0.0f,0.0f,this->JumpImpulse), TEXT("None"), true);
-		CanJump = false;
+		if (this->CanJump && this->CanJumpingJump) {
+			UE_LOG(LogTemp, Warning, TEXT("First Jump"));
+
+			this->Sphere->AddImpulse(FVector(0.0f,0.0f,this->JumpImpulse), TEXT("None"), true);
+			this->CanJump = false;
+			return;
+		}
+
+		// ジャンプをしていて，２段ジャンプをしていなくて，１回キーボードから手を離している場合，
+		if (!this->CanJump && this->CanJumpingJump && this->HasReleasedSpaceBarForJump) {
+			UE_LOG(LogTemp, Warning, TEXT("Second Jump"));
+
+			this->Sphere->AddImpulse(FVector(0.0f,0.0f,this->JumpImpulse), TEXT("None"), true);
+			this->CanJumpingJump = false;
+			return;
+		}
+	} else {
+		if (!this->CanJump) {
+			UE_LOG(LogTemp, Warning, TEXT("HasReleasedSpaceBarForJump"));
+	
+			this->HasReleasedSpaceBarForJump = true;
+		}
 	}
 }
 
 void ABallPlayer::NotifyHit(class UPrimitiveComponent* MyComp, class AActor* Other, class UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit)
 {
-	Super::NotifyHit(MyComp, Other, OtherComp, bSelfMoved, HitLocation, HitNormal, NormalImpulse, Hit);	
+	Super::NotifyHit(MyComp, Other, OtherComp, bSelfMoved, HitLocation, HitNormal, NormalImpulse, Hit);
+	
+	this->CanJumpingJump = true;
 	this->CanJump = true;
+	this->HasReleasedSpaceBarForJump = false;
 }

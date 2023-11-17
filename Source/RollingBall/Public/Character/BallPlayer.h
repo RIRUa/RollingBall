@@ -88,6 +88,12 @@ private:
 	// ジャンプができるか判定するフラグ
 	bool CanJump = false;
 
+	// 発展：２段ジャンプできるか判定する処理の追加
+	//　２段ジャンプする前にSpace Barから手を放したかどうか判定するフラグ
+	bool HasReleasedSpaceBarForJump = false;
+	// ２段ジャンプできるか判定するフラグ
+	bool CanJumpingJump = false;
+
 protected:
 	// ジャンプする
 	void Jump(const FInputActionValue& Value);
